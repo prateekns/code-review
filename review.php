@@ -70,22 +70,20 @@ main();
 
 function main(): void
 {
-    $githubToken = requireEnv('GITHUB_TOKEN');
-    $geminiApiKey = requireEnv('GEMINI_API_KEY');
-    $repo = requireEnv('GITHUB_REPOSITORY');
-    $prNumber = requirePositiveIntEnv('PR_NUMBER');
+    $dryRun = 1;
 
-    $githubToken = requireEnv('GITHUB_TOKEN');
     $geminiApiKey = requireEnv('GEMINI_API_KEY');
-    $repo = requireEnv('GITHUB_REPOSITORY');
-    $prNumber = requirePositiveIntEnv('PR_NUMBER');
-    
+    // $geminiApiKey = requireEnv('GEMINI_API_KEY');
 
+    $githubToken = $dryRun ? (string) (getenv('GITHUB_TOKEN') ?: '') : requireEnv('GITHUB_TOKEN');
+    $repo = $dryRun ? (string) (getenv('GITHUB_REPOSITORY') ?: '') : requireEnv('GITHUB_REPOSITORY');
+    $prNumber = $dryRun ? (int) (getenv('PR_NUMBER') ?: 0) : requirePositiveIntEnv('PR_NUMBER');
 
     $model = getenv('GEMINI_MODEL');
     $geminiModel = $model !== false && trim($model) !== '' ? trim($model) : DEFAULT_GEMINI_MODEL;
     if (!preg_match('/^[A-Za-z0-9._-]+$/', $geminiModel)) {
-        failWithComment(
+        failPipeline(
+            $dryRun,
             $githubToken,
             $repo,
             $prNumber,
@@ -95,7 +93,9 @@ function main(): void
     }
 
     if (!preg_match('/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/', $repo)) {
-        failWithComment($githubToken, $repo, $prNumber, 'Invalid GITHUB_REPOSITORY format. Expected owner/repo.', null);
+        if (!$dryRun) {
+            failPipeline($dryRun, $githubToken, $repo, $prNumber, 'Invalid GITHUB_REPOSITORY format. Expected owner/repo.', null);
+        }
     }
 
     ensureBaseBranchFetched();
@@ -113,7 +113,8 @@ function main(): void
     try {
         $review = json_decode($reviewJsonText, true, 512, JSON_THROW_ON_ERROR);
     } catch (Throwable $e) {
-        failWithComment(
+        failPipeline(
+            $dryRun,
             $githubToken,
             $repo,
             $prNumber,
@@ -126,7 +127,7 @@ function main(): void
     $validationErrors = validateReviewPayload($review);
     if ($validationErrors !== []) {
         $msg = "Gemini JSON failed validation:\n- " . implode("\n- ", $validationErrors);
-        failWithComment($githubToken, $repo, $prNumber, $msg, $geminiModel);
+        failPipeline($dryRun, $githubToken, $repo, $prNumber, $msg, $geminiModel);
     }
 
     $summary = $review['summary'];
@@ -138,13 +139,40 @@ function main(): void
     $low = (int) $summary['low'];
 
     $commentBody = buildCommentBody($geminiModel, $humanReadable, $critical, $high, $medium, $low);
-    postPrComment($githubToken, $repo, $prNumber, $commentBody);
+    if ($dryRun) {
+        fwrite(STDOUT, $commentBody . "\n");
+    } else {
+        postPrComment($githubToken, $repo, $prNumber, $commentBody);
+    }
 
     if ($critical > 0) {
         exit(1);
     }
 
     exit(0);
+}
+
+function isTruthyEnv(string $name): bool
+{
+    $value = getenv($name);
+    if ($value === false) {
+        return false;
+    }
+
+    $value = strtolower(trim((string) $value));
+    return in_array($value, ['1', 'true', 'yes', 'on'], true);
+}
+
+function failPipeline(bool $dryRun, string $githubToken, string $repo, int $prNumber, string $message, ?string $model): void
+{
+    if ($dryRun) {
+        $modelText = $model !== null ? $model : 'unknown';
+        fwrite(STDERR, "AI Review pipeline failure (Gemini: {$modelText})\n\n");
+        fwrite(STDERR, sanitizeForLogsWithSecrets($message, [$githubToken]) . "\n");
+        exit(1);
+    }
+
+    failWithComment($githubToken, $repo, $prNumber, $message, $model);
 }
 
 function requireEnv(string $name): string
