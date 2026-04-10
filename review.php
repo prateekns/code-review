@@ -75,6 +75,13 @@ function main(): void
     $repo = requireEnv('GITHUB_REPOSITORY');
     $prNumber = requirePositiveIntEnv('PR_NUMBER');
 
+    $githubToken = requireEnv('GITHUB_TOKEN');
+    $geminiApiKey = requireEnv('GEMINI_API_KEY');
+    $repo = requireEnv('GITHUB_REPOSITORY');
+    $prNumber = requirePositiveIntEnv('PR_NUMBER');
+    
+
+
     $model = getenv('GEMINI_MODEL');
     $geminiModel = $model !== false && trim($model) !== '' ? trim($model) : DEFAULT_GEMINI_MODEL;
     if (!preg_match('/^[A-Za-z0-9._-]+$/', $geminiModel)) {
