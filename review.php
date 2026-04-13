@@ -82,7 +82,7 @@ function main(): void
     $githubToken = getenv('GITHUB_TOKEN');
     $model = getenv('GEMINI_MODEL');
     $repo = getenv('GITHUB_REPOSITORY');
-    $prNumber = getenv('PR_NUMBER');
+    $prNumber = (int)getenv('PR_NUMBER');
 
     // $githubToken = $dryRun ? (string) (getenv('GITHUB_TOKEN') ?: '') : requireEnv('GITHUB_TOKEN');
     // $repo = $dryRun ? (string) (getenv('GITHUB_REPOSITORY') ?: '') : requireEnv('GITHUB_REPOSITORY');
