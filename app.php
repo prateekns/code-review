@@ -5,3 +5,6 @@ function hello($name): void {
 }
 
 hello();
+
+
+createUser($user);
