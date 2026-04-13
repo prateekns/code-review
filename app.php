@@ -101,8 +101,6 @@ function main(): void
 {
     $dryRun = false;
 
-    echo "In Main Method...\n";
-
     // $geminiApiKey = requireEnv('GEMINI_API_KEY');
     $geminiApiKey = getenv('GEMINI_API_KEY');
     $githubToken = getenv('GITHUB_TOKEN');
