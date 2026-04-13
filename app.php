@@ -95,7 +95,7 @@ RULES:
 - Include function or scope name when available in message
 PROMPT;
 
-main();
+// main();
 
 function main(): void
 {
