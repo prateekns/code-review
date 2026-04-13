@@ -200,7 +200,9 @@ function requireEnv(string $name): string
 {
     $value = getenv($name);
     if ($value === false || trim($value) === '') {
-        fwrite(STDERR, "Missing required env var: {$name}\n");
+        $message = "Missing required env var: {$name}\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(2);
     }
 
@@ -211,13 +213,17 @@ function requirePositiveIntEnv(string $name): int
 {
     $value = requireEnv($name);
     if (!preg_match('/^[0-9]+$/', $value)) {
-        fwrite(STDERR, "Invalid {$name}: must be an integer.\n");
+        $message = "Invalid {$name}: must be an integer.\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(2);
     }
 
     $int = (int) $value;
     if ($int <= 0) {
-        fwrite(STDERR, "Invalid {$name}: must be > 0.\n");
+        $message = "Invalid {$name}: must be > 0.\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(2);
     }
 
@@ -240,7 +246,9 @@ function getGitDiff(): string
     $result = runCommand($cmd);
 
     if ($result['exit_code'] !== 0) {
-        fwrite(STDERR, "Failed to generate git diff. Output:\n" . sanitizeForLogsWithSecrets($result['output'], []) . "\n");
+        $message = "Failed to generate git diff. Output:\n" . sanitizeForLogsWithSecrets($result['output'], []) . "\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -326,7 +334,9 @@ function callGemini(string $apiKey, string $model, string $userPrompt): string
 
     $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if ($json === false) {
-        fwrite(STDERR, "Failed to encode Gemini payload.\n");
+        $message = "Failed to encode Gemini payload.\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -338,7 +348,9 @@ function callGemini(string $apiKey, string $model, string $userPrompt): string
         $status = $resp['status'];
         $body = sanitizeForLogsWithSecrets($resp['body'], [$apiKey]);
         $safeUrl = preg_replace('/key=[^&]+/i', 'key=[REDACTED]', $url) ?? '[redacted]';
-        fwrite(STDERR, "Gemini API error ({$status}) at {$safeUrl}. Body:\n{$body}\n");
+        $message = "Gemini API error ({$status}) at {$safeUrl}. Body:\n{$body}\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -355,13 +367,17 @@ function extractGeminiText(string $geminiResponseJson): string
         // echo '</pre>';
         // exit;
     } catch (Throwable $e) {
-        fwrite(STDERR, "Failed to decode Gemini response envelope JSON: {$e->getMessage()}\n");
+        $message = "Failed to decode Gemini response envelope JSON: {$e->getMessage()}\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
     $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
     if (!is_string($text) || trim($text) === '') {
-        fwrite(STDERR, "Gemini response missing candidates[0].content.parts[0].text\n");
+        $message = "Gemini response missing candidates[0].content.parts[0].text\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -712,7 +728,9 @@ function postPrComment(string $githubToken, string $repo, int $prNumber, string 
     $url = GITHUB_API_BASE . '/repos/' . $repo . '/issues/' . $prNumber . '/comments';
     $payload = json_encode(['body' => $body], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if ($payload === false) {
-        fwrite(STDERR, "Failed to encode GitHub comment payload.\n");
+        $message = "Failed to encode GitHub comment payload.\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -727,7 +745,9 @@ function postPrComment(string $githubToken, string $repo, int $prNumber, string 
     if ($resp['status'] < 200 || $resp['status'] >= 300) {
         $status = $resp['status'];
         $safeBody = sanitizeForLogsWithSecrets($resp['body'], [$githubToken]);
-        fwrite(STDERR, "Failed to post PR comment (HTTP {$status}). Body:\n{$safeBody}\n");
+        $message = "Failed to post PR comment (HTTP {$status}). Body:\n{$safeBody}\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 }
@@ -751,13 +771,17 @@ function failWithComment(string $githubToken, string $repo, int $prNumber, strin
 function httpRequest(string $method, string $url, array $headers, ?string $body): array
 {
     if (!extension_loaded('curl')) {
-        fwrite(STDERR, "PHP extension 'curl' is required.\n");
+        $message = "PHP extension 'curl' is required.\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
     $ch = curl_init();
     if ($ch === false) {
-        fwrite(STDERR, "Failed to initialize curl.\n");
+        $message = "Failed to initialize curl.\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -804,7 +828,9 @@ function httpRequest(string $method, string $url, array $headers, ?string $body)
 
     if ($respBody === false || $errno !== 0) {
         $msg = $error !== '' ? $error : 'Unknown curl error';
-        fwrite(STDERR, "HTTP request failed: {$msg}\n");
+        $message = "HTTP request failed: {$msg}\n";
+        echo $message;
+        fwrite(STDERR, $message);
         exit(1);
     }
 
@@ -830,7 +856,9 @@ function applyTlsOptions(array $opts): array
     if (is_string($caBundle) && trim($caBundle) !== '') {
         $path = trim($caBundle);
         if (!is_file($path) || !is_readable($path)) {
-            fwrite(STDERR, "Invalid CURL_CA_BUNDLE path: {$path}\n");
+            $message = "Invalid CURL_CA_BUNDLE path: {$path}\n";
+            echo $message;
+            fwrite(STDERR, $message);
             exit(2);
         }
 
@@ -838,7 +866,9 @@ function applyTlsOptions(array $opts): array
     }
 
     if (isTruthyEnv('ALLOW_INSECURE_TLS')) {
-        fwrite(STDERR, "Warning: ALLOW_INSECURE_TLS=1 disables TLS verification (local testing only).\n");
+        $message = "Warning: ALLOW_INSECURE_TLS=1 disables TLS verification (local testing only).\n";
+        echo $message;
+        fwrite(STDERR, $message);
         $opts[CURLOPT_SSL_VERIFYPEER] = false;
         $opts[CURLOPT_SSL_VERIFYHOST] = 0;
     }
