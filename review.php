@@ -211,7 +211,7 @@ function ensureBaseBranchFetched(): void
 
 function getGitDiff(): string
 {
-    $cmd = 'git diff --unified=5 ' . escapeshellarg(BASE_BRANCH_REF . '...HEAD');
+    $cmd = 'git diff --unified=0 ' . escapeshellarg(BASE_BRANCH_REF . '...HEAD');
     $result = runCommand($cmd);
 
     if ($result['exit_code'] !== 0) {
