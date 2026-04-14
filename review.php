@@ -980,7 +980,7 @@ function httpRequest(string $method, string $url, array $headers, ?string $body)
     if ($respBody === false || $errno !== 0) {
         $msg = $error !== '' ? $error : 'Unknown curl error';
         $message = "HTTP request failed: {$msg}\n";
-        echo $message;
+        // echo $message;
         fwrite(STDERR, $message);
         exit(1);
     }
