@@ -215,7 +215,7 @@ function failPipeline(bool $dryRun, string $githubToken, string $repo, int $prNu
     failWithComment($githubToken, $repo, $prNumber, $message, $model);
 }
 
-function requireEnv(string $name): string
+function requireEnv(string $name)
 {
     $value = getenv($name);
     if ($value === false || trim($value) === '') {
