@@ -108,7 +108,7 @@ function main(): void
     // $prNumber = $dryRun ? (int) (getenv('PR_NUMBER') ?: 0) : requirePositiveIntEnv('PR_NUMBER');
 
 
-        $geminiApiKey = getenv('OPENAI_API_KEY');
+        $openAiApiKey = getenv('OPENAI_API_KEY');
         $githubToken = (string) getenv('GITHUB_TOKEN');
         $model = getenv('OPENAI_MODEL');
         $repo = getenv('GITHUB_REPOSITORY');
