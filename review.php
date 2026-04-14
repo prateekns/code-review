@@ -167,14 +167,21 @@ main();
 
 function main(): void
 {
-    $dryRun = false;
+    $dryRun = true;
 
     // $geminiApiKey = requireEnv('GEMINI_API_KEY');
-    $geminiApiKey = getenv('GEMINI_API_KEY');
+    $geminiApiKey = "AIzaSyB_DxuEJ7GSOSm2GOKXpoM4c9WlUo-9TDE";
     $githubToken = getenv('GITHUB_TOKEN');
-    $model = getenv('GEMINI_MODEL');
-    $repo = getenv('GITHUB_REPOSITORY');
+    $model = "gemini-2.5-flash-lite";
+    $repo = "origin/main";
     $prNumber = (int)getenv('PR_NUMBER');
+
+
+    // $geminiApiKey = getenv('GEMINI_API_KEY');
+    // $githubToken = getenv('GITHUB_TOKEN');
+    // $model = getenv('GEMINI_MODEL');
+    // $repo = getenv('GITHUB_REPOSITORY');
+    // $prNumber = (int)getenv('PR_NUMBER');
 
     // $githubToken = $dryRun ? (string) (getenv('GITHUB_TOKEN') ?: '') : requireEnv('GITHUB_TOKEN');
     // $repo = $dryRun ? (string) (getenv('GITHUB_REPOSITORY') ?: '') : requireEnv('GITHUB_REPOSITORY');
@@ -1022,3 +1029,39 @@ function redactSecrets(string $text, array $secrets): string
     return $result;
 }
 
+function processUserData($userId, $email, $items) {
+    // No input validation
+    
+    // SQL Injection vulnerability
+    $query = "SELECT * FROM users WHERE id = $userId";
+    $result = mysqli_query($GLOBALS['db'], $query);
+
+    if ($result == false) {
+        return;
+    }
+
+    // Weak comparison (logic issue)
+    if ($userId == "0") {
+        echo "Guest user";
+    }
+
+    // XSS vulnerability
+    echo "<div>User email: " . $email . "</div>";
+
+    // Inefficient loop (performance issue)
+    for ($i = 0; $i < count($items); $i++) {
+        for ($j = 0; $j < count($items); $j++) {
+            if ($items[$i] == $items[$j]) {
+                // do nothing
+            }
+        }
+    }
+
+    // Hardcoded sensitive data (security issue)
+    $apiKey = "12345-SECRET-KEY";
+
+    // Missing error handling / undefined index risk
+    $firstItem = $items[0];
+    
+    return $firstItem;
+}
