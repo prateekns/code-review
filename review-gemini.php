@@ -12,8 +12,8 @@ echo "Script started...\n";
  *
  * Env vars:
  * - GITHUB_TOKEN
- * - OPENAI_API_KEY
- * - OPENAI_MODEL (optional)
+ * - GEMINI_API_KEY
+ * - GEMINI_MODEL (optional)
  * - GITHUB_REPOSITORY (owner/repo)
  * - PR_NUMBER
  * - CURL_CA_BUNDLE (optional path to CA bundle)
@@ -21,8 +21,8 @@ echo "Script started...\n";
  */
 
 const BASE_BRANCH_REF = 'origin/main';
-const DEFAULT_OPENAI_MODEL = 'gpt-4.1-mini';
-const OPENAI_API_BASE = 'https://api.openai.com/v1';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 const GITHUB_API_BASE = 'https://api.github.com';
 const MAX_DIFF_BYTES = 400_000;
 const MAX_AGENTS_BYTES = 50_000;
@@ -35,7 +35,7 @@ const USER_AGENT = 'ai-review-php/1.0';
 /**
  * MUST embed system instruction inside this script.
  */
-const OPENAI_SYSTEM_INSTRUCTION = <<<'PROMPT'
+const GEMINI_SYSTEM_INSTRUCTION = <<<'PROMPT'
 You are a strict code reviewer for CI/CD.
 
 Review ONLY provided git diff.
@@ -99,31 +99,34 @@ main();
 
 function main(): void
 {
-    $dryRun = false;
+    $dryRun = true;
 
-    // $openAiApiKey = requireEnv('OPENAI_API_KEY');
+    $geminiApiKey = "AIzaSyB_DxuEJ7GSOSm2GOKXpoM4c9WlUo-9TDE";
+    // $geminiApiKey = getenv('GEMINI_API_KEY');
+    $githubToken = (string) getenv('GITHUB_TOKEN');
+    // $model = getenv('GEMINI_MODEL');
+    // $repo = getenv('GITHUB_REPOSITORY');
+    $prNumber = (int)getenv('PR_NUMBER');
+
     // $githubToken = $dryRun ? (string) (getenv('GITHUB_TOKEN') ?: '') : requireEnv('GITHUB_TOKEN');
-    // $model = getenv('OPENAI_MODEL');
     // $repo = $dryRun ? (string) (getenv('GITHUB_REPOSITORY') ?: '') : requireEnv('GITHUB_REPOSITORY');
     // $prNumber = $dryRun ? (int) (getenv('PR_NUMBER') ?: 0) : requirePositiveIntEnv('PR_NUMBER');
 
+    // $githubToken = "";
+    $repo = 'origin/main';
 
-        $geminiApiKey = getenv('OPENAI_API_KEY');
-        $githubToken = (string) getenv('GITHUB_TOKEN');
-        $model = getenv('OPENAI_MODEL');
-        $repo = getenv('GITHUB_REPOSITORY');
-        $prNumber = (int)getenv('PR_NUMBER');
-
-
-    $openAiModel = $model !== false && trim($model) !== '' ? trim($model) : DEFAULT_OPENAI_MODEL;
-    if (!preg_match('/^[A-Za-z0-9._-]+$/', $openAiModel)) {
+    $model = 'gemini-3.1-pro-preview';
+    echo $model ."\n";
+    // echo $model;exit;
+    $geminiModel = $model !== false && trim($model) !== '' ? trim($model) : DEFAULT_GEMINI_MODEL;
+    if (!preg_match('/^[A-Za-z0-9._-]+$/', $geminiModel)) {
         failPipeline(
             $dryRun,
             $githubToken,
             $repo,
             $prNumber,
-            'Invalid OPENAI_MODEL value. Allowed: letters, numbers, ".", "_", "-".',
-            $openAiModel
+            'Invalid GEMINI_MODEL value. Allowed: letters, numbers, ".", "_", "-".',
+            $geminiModel
         );
     }
 
@@ -143,8 +146,8 @@ function main(): void
 
     $userPrompt = buildUserPrompt($agentsRules, $diffForPrompt, $diffTruncated);
 
-    $openAiRawResponse = callOpenAi($openAiApiKey, $openAiModel, $userPrompt);
-    $reviewJsonText = extractOpenAiText($openAiRawResponse);
+    $geminiRawResponse = callGemini($geminiApiKey, $geminiModel, $userPrompt);
+    $reviewJsonText = extractGeminiText($geminiRawResponse);
 
     try {
         $review = decodeReviewJsonFromModelText($reviewJsonText);
@@ -154,8 +157,8 @@ function main(): void
             $githubToken,
             $repo,
             $prNumber,
-            "OpenAI returned non-JSON or invalid JSON. Error: {$e->getMessage()}",
-            $openAiModel
+            "Gemini returned non-JSON or invalid JSON. Error: {$e->getMessage()}",
+            $geminiModel
         );
         return;
     }
@@ -164,8 +167,8 @@ function main(): void
     $review = enrichIssuesWithScope($review, $diffIndex);
     $validationErrors = array_merge($validationErrors, validateIssuesAgainstDiff($review, $diffIndex));
     if ($validationErrors !== []) {
-        $msg = "OpenAI JSON failed validation:\n- " . implode("\n- ", $validationErrors);
-        failPipeline($dryRun, $githubToken, $repo, $prNumber, $msg, $openAiModel);
+        $msg = "Gemini JSON failed validation:\n- " . implode("\n- ", $validationErrors);
+        failPipeline($dryRun, $githubToken, $repo, $prNumber, $msg, $geminiModel);
     }
 
     $summary = $review['summary'];
@@ -176,7 +179,7 @@ function main(): void
     $medium = (int) $summary['medium'];
     $low = (int) $summary['low'];
 
-    $commentBody = buildCommentBody($openAiModel, $humanReadable, $critical, $high, $medium, $low);
+    $commentBody = buildCommentBody($geminiModel, $humanReadable, $critical, $high, $medium, $low);
     if ($dryRun) {
         fwrite(STDOUT, $commentBody . "\n");
     } else {
@@ -205,7 +208,7 @@ function failPipeline(bool $dryRun, string $githubToken, string $repo, int $prNu
 {
     if ($dryRun) {
         $modelText = $model !== null ? $model : 'unknown';
-        fwrite(STDERR, "AI Review pipeline failure (OpenAI: {$modelText})\n\n");
+        fwrite(STDERR, "AI Review pipeline failure (Gemini: {$modelText})\n\n");
         fwrite(STDERR, sanitizeForLogsWithSecrets($message, [$githubToken]) . "\n");
         exit(1);
     }
@@ -325,64 +328,47 @@ function buildUserPrompt(string $agentsRules, string $diff, bool $diffTruncated)
     return implode("\n\n---\n\n", $parts);
 }
 
-function callOpenAi(string $apiKey, string $model, string $userPrompt): string
+function callGemini(string $apiKey, string $model, string $userPrompt): string
 {
-    $url = OPENAI_API_BASE . '/responses';
-
-    // $payload = [
-    //     'model' => $model,
-    //     'input' => [
-    //         [
-    //             'role' => 'system',
-    //             'content' => [
-    //                 [
-    //                     'type' => 'input_text',
-    //                     'text' => OPENAI_SYSTEM_INSTRUCTION,
-    //                 ],
-    //             ],
-    //         ],
-    //         [
-    //             'role' => 'user',
-    //             'content' => [
-    //                 [
-    //                     'type' => 'input_text',
-    //                     'text' => $userPrompt,
-    //                 ],
-    //             ],
-    //         ],
-    //     ],
-    //     'max_output_tokens' => 2048,
-    // ];
+    $url = GEMINI_API_BASE . rawurlencode($model) . ':generateContent?key=' . rawurlencode($apiKey);
 
     $payload = [
-        "model" => $model,
-        "input" => [
-            ["role" => "system", "content" => OPENAI_SYSTEM_INSTRUCTION],
-            ["role" => "user", "content" => $userPrompt]
-        ]
+        'system_instruction' => [
+            'parts' => [
+                ['text' => GEMINI_SYSTEM_INSTRUCTION],
+            ],
+        ],
+        'contents' => [
+            [
+                'role' => 'user',
+                'parts' => [
+                    ['text' => $userPrompt],
+                ],
+            ],
+        ],
+        'generationConfig' => [
+            'temperature' => 0.2,
+            'maxOutputTokens' => 2048,
+        ],
     ];
-
 
     $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if ($json === false) {
-        $message = "Failed to encode OpenAI payload.\n";
+        $message = "Failed to encode Gemini payload.\n";
         echo $message;
         fwrite(STDERR, $message);
         exit(1);
     }
 
     $resp = httpRequest('POST', $url, [
-        'Authorization: Bearer ' . $apiKey,
         'Content-Type: application/json',
-        'Accept: application/json',
     ], $json);
-
-    // echo '<pre/>';print_r($resp);exit;
 
     if ($resp['status'] < 200 || $resp['status'] >= 300) {
         $status = $resp['status'];
         $body = sanitizeForLogsWithSecrets($resp['body'], [$apiKey]);
-        $message = "OpenAI API error ({$status}) at {$url}. Body:\n{$body}\n";
+        $safeUrl = preg_replace('/key=[^&]+/i', 'key=[REDACTED]', $url) ?? '[redacted]';
+        $message = "Gemini API error ({$status}) at {$safeUrl}. Body:\n{$body}\n";
         echo $message;
         fwrite(STDERR, $message);
         exit(1);
@@ -391,150 +377,31 @@ function callOpenAi(string $apiKey, string $model, string $userPrompt): string
     return $resp['body'];
 }
 
-function extractOpenAiText(string $openAiResponseJson): string
+function extractGeminiText(string $geminiResponseJson): string
 {
     try {
-        $data = json_decode($openAiResponseJson, true, 512, JSON_THROW_ON_ERROR);
+        $data = json_decode($geminiResponseJson, true, 512, JSON_THROW_ON_ERROR);
+
+        // echo '<pre/>';
+        // print_r($data);
+        // echo '</pre>';
+        // exit;
     } catch (Throwable $e) {
-        $message = "Failed to decode OpenAI response envelope JSON: {$e->getMessage()}\n";
+        $message = "Failed to decode Gemini response envelope JSON: {$e->getMessage()}\n";
         echo $message;
         fwrite(STDERR, $message);
         exit(1);
     }
 
-    echo '<pre/>';print_r($data);exit;
-
-    $text = $data['output_text'] ?? null;
+    $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
     if (!is_string($text) || trim($text) === '') {
-        $text = extractOpenAiTextFromOutputItems($data);
-    }
-    if (!is_string($text) || trim($text) === '') {
-        $text = extractOpenAiTextFromChatChoices($data);
-    }
-    if (!is_string($text) || trim($text) === '') {
-        $text = extractOpenAiTextFromKnownFallbackPaths($data);
-    }
-
-    if (!is_string($text) || trim($text) === '') {
-        $debug = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $safeDebug = is_string($debug) ? sanitizeForLogsWithSecrets($debug, []) : '[unavailable]';
-        $message = "OpenAI response missing text content. Envelope snippet:\n"
-            . substr($safeDebug, 0, 4000)
-            . "\n";
+        $message = "Gemini response missing candidates[0].content.parts[0].text\n";
         echo $message;
         fwrite(STDERR, $message);
         exit(1);
     }
 
     return trim($text);
-}
-
-function extractOpenAiTextFromOutputItems(array $data): ?string
-{
-    $outputItems = $data['output'] ?? null;
-    if (!is_array($outputItems)) {
-        return null;
-    }
-
-    $chunks = [];
-    foreach ($outputItems as $item) {
-        if (!is_array($item)) {
-            continue;
-        }
-
-        $contentItems = $item['content'] ?? null;
-        if (!is_array($contentItems)) {
-            continue;
-        }
-
-        foreach ($contentItems as $contentItem) {
-            if (!is_array($contentItem)) {
-                continue;
-            }
-
-            $candidateText = $contentItem['text'] ?? null;
-            if (is_string($candidateText) && trim($candidateText) !== '') {
-                $chunks[] = trim($candidateText);
-            }
-        }
-    }
-
-    if ($chunks === []) {
-        return null;
-    }
-
-    return implode("\n", $chunks);
-}
-
-function extractOpenAiTextFromChatChoices(array $data): ?string
-{
-    $choices = $data['choices'] ?? null;
-    if (!is_array($choices)) {
-        return null;
-    }
-
-    $chunks = [];
-    foreach ($choices as $choice) {
-        if (!is_array($choice)) {
-            continue;
-        }
-
-        $message = $choice['message'] ?? null;
-        if (!is_array($message)) {
-            continue;
-        }
-
-        $content = $message['content'] ?? null;
-        if (is_string($content) && trim($content) !== '') {
-            $chunks[] = trim($content);
-            continue;
-        }
-
-        if (!is_array($content)) {
-            continue;
-        }
-
-        foreach ($content as $part) {
-            if (is_array($part)) {
-                $partText = $part['text'] ?? null;
-                if (is_string($partText) && trim($partText) !== '') {
-                    $chunks[] = trim($partText);
-                }
-            }
-        }
-    }
-
-    if ($chunks === []) {
-        return null;
-    }
-
-    return implode("\n", $chunks);
-}
-
-function extractOpenAiTextFromKnownFallbackPaths(array $data): ?string
-{
-    $chunks = [];
-
-    $responsesContent = $data['response']['content'] ?? null;
-    if (is_string($responsesContent) && trim($responsesContent) !== '') {
-        $chunks[] = trim($responsesContent);
-    }
-
-    $messageContent = $data['message']['content'] ?? null;
-    if (is_string($messageContent) && trim($messageContent) !== '') {
-        $chunks[] = trim($messageContent);
-    }
-
-    $refusal = $data['refusal'] ?? null;
-    if (is_string($refusal) && trim($refusal) !== '') {
-        $chunks[] = trim($refusal);
-    }
-
-    if ($chunks === []) {
-        return null;
-    }
-
-    return implode("\n", $chunks);
 }
 
 /**
@@ -866,7 +733,7 @@ function validateIssuesAgainstDiff(array $review, array $diffIndex): array
 
 function buildCommentBody(string $model, string $humanReadable, int $critical, int $high, int $medium, int $low): string
 {
-    $header = "**AI Review (OpenAI: {$model})**\n\n"
+    $header = "**AI Review (Gemini: {$model})**\n\n"
         . "**Summary**: critical={$critical}, high={$high}, medium={$medium}, low={$low}\n\n"
         . "---\n\n";
 
@@ -909,7 +776,7 @@ function failWithComment(string $githubToken, string $repo, int $prNumber, strin
 {
     $modelText = $model !== null ? $model : 'unknown';
     $safeMessage = sanitizeForLogsWithSecrets($message, [$githubToken]);
-    $body = "**AI Review pipeline failure (OpenAI: {$modelText})**\n\n"
+    $body = "**AI Review pipeline failure (Gemini: {$modelText})**\n\n"
         . "The review step failed and should be treated as a **high severity CI failure**.\n\n"
         . "**Details**:\n\n"
         . "```\n" . trim($safeMessage) . "\n```\n";
