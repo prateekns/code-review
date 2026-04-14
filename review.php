@@ -36,11 +36,8 @@ const USER_AGENT = 'ai-review-php/1.0';
  * MUST embed system instruction inside this script.
  */
 const GEMINI_SYSTEM_INSTRUCTION = <<<'PROMPT'
-You are an expert CI/CD code review agent.
-You MUST strictly follow the review policies defined below.
-These policies are MANDATORY and OVERRIDE any default behavior.
+You are a strict code reviewer for CI/CD.
 
-TASK:
 Review ONLY provided git diff.
 Follow AGENTS.md rules if provided.
 
@@ -49,13 +46,6 @@ Detect:
 - logic bugs
 - performance issues
 - bad practices
-
-RULES:
-- Do NOT ignore AGENTS.md rules
-- Do NOT invent rules not in AGENTS.md
-- If AGENTS.md conflicts with general best practices, AGENTS.md wins
-- Only analyze code in the diff
-- No hallucinations
 
 Be strict and precise.
 
@@ -307,7 +297,7 @@ function truncateBytes(string $text, int $maxBytes): array
 
 function readAgentsRules(): string
 {
-    $path = getcwd() . DIRECTORY_SEPARATOR . 'AGENTSS.md';
+    $path = getcwd() . DIRECTORY_SEPARATOR . 'AGENTS.md';
     if (!is_file($path)) {
         return '';
     }
