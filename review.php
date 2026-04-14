@@ -213,6 +213,8 @@ function main(): void
     ensureBaseBranchFetched();
 
     $diff = getGitDiff();
+
+    // echo $diff;exit;
     [$diffForPrompt, $diffTruncated] = truncateBytes($diff, MAX_DIFF_BYTES);
     $diffIndex = buildDiffIndex($diff);
 
@@ -275,7 +277,8 @@ function isTruthyEnv(string $name): bool
     }
 
     $value = strtolower(trim((string) $value));
-    return in_array($value, ['1', 'true', 'yes', 'on'], true);
+    return 'here';
+    // return in_array($value, ['1', 'true', 'yes', 'on'], true);
 }
 
 function failPipeline(bool $dryRun, string $githubToken, string $repo, int $prNumber, string $message, ?string $model): void
