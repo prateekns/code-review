@@ -307,7 +307,7 @@ function truncateBytes(string $text, int $maxBytes): array
 
 function readAgentsRules(): string
 {
-    $path = getcwd() . DIRECTORY_SEPARATOR . 'AGENTS.md';
+    $path = getcwd() . DIRECTORY_SEPARATOR . 'AGENTSS.md';
     if (!is_file($path)) {
         return '';
     }
