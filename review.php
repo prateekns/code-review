@@ -84,8 +84,8 @@ function main(): void
     ensureBaseBranchFetched();
 
     $diff = getGitDiff();
-    echo "See difference" ."\n";
-    echo $diff."\n";
+    // echo "See difference" ."\n";
+    // echo $diff."\n";
     [$diffForPrompt, $diffTruncated] = truncateBytes($diff, MAX_DIFF_BYTES);
     $diffIndex = buildDiffIndex($diff);
 
