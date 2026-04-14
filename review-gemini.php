@@ -5,6 +5,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 
+echo "Script started...\n";
+
 /**
  * AI PR Review POC - single file, no dependencies.
  *
@@ -93,17 +95,17 @@ RULES:
 - Include function or scope name when available in message
 PROMPT;
 
-// main();
+main();
 
 function main(): void
 {
-    $dryRun = false;
+    $dryRun = true;
 
-    // $geminiApiKey = requireEnv('GEMINI_API_KEY');
-    $geminiApiKey = getenv('GEMINI_API_KEY');
-    $githubToken = getenv('GITHUB_TOKEN');
-    $model = getenv('GEMINI_MODEL');
-    $repo = getenv('GITHUB_REPOSITORY');
+    $geminiApiKey = "AIzaSyB_DxuEJ7GSOSm2GOKXpoM4c9WlUo-9TDE";
+    // $geminiApiKey = getenv('GEMINI_API_KEY');
+    $githubToken = (string) getenv('GITHUB_TOKEN');
+    // $model = getenv('GEMINI_MODEL');
+    // $repo = getenv('GITHUB_REPOSITORY');
     $prNumber = (int)getenv('PR_NUMBER');
 
     // $githubToken = $dryRun ? (string) (getenv('GITHUB_TOKEN') ?: '') : requireEnv('GITHUB_TOKEN');
@@ -111,9 +113,10 @@ function main(): void
     // $prNumber = $dryRun ? (int) (getenv('PR_NUMBER') ?: 0) : requirePositiveIntEnv('PR_NUMBER');
 
     // $githubToken = "";
-    // $repo = 'origin/main';
+    $repo = 'origin/main';
 
-    // $model = 'gemini-3.1-flash-lite-preview';
+    $model = 'gemini-3.1-pro-preview';
+    echo $model ."\n";
     // echo $model;exit;
     $geminiModel = $model !== false && trim($model) !== '' ? trim($model) : DEFAULT_GEMINI_MODEL;
     if (!preg_match('/^[A-Za-z0-9._-]+$/', $geminiModel)) {

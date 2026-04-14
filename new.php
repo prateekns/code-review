@@ -952,3 +952,39 @@ function redactSecrets(string $text, array $secrets): string
     return $result;
 }
 
+function processUserData($userId, $email, $items) {
+    // No input validation
+    
+    // SQL Injection vulnerability
+    $query = "SELECT * FROM users WHERE id = $userId";
+    $result = mysqli_query($GLOBALS['db'], $query);
+
+    if ($result == false) {
+        return;
+    }
+
+    // Weak comparison (logic issue)
+    if ($userId == "0") {
+        echo "Guest user";
+    }
+
+    // XSS vulnerability
+    echo "<div>User email: " . $email . "</div>";
+
+    // Inefficient loop (performance issue)
+    for ($i = 0; $i < count($items); $i++) {
+        for ($j = 0; $j < count($items); $j++) {
+            if ($items[$i] == $items[$j]) {
+                // do nothing
+            }
+        }
+    }
+
+    // Hardcoded sensitive data (security issue)
+    $apiKey = "12345-SECRET-KEY";
+
+    // Missing error handling / undefined index risk
+    $firstItem = $items[0];
+    
+    return $firstItem;
+}
