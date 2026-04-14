@@ -402,9 +402,7 @@ function extractOpenAiText(string $openAiResponseJson): string
         exit(1);
     }
 
-    echo '<pre/>';print_r($data);exit;
-
-    $text = $data['output_text'] ?? null;
+    $text = $data['output'] ?? null;
     if (!is_string($text) || trim($text) === '') {
         $text = extractOpenAiTextFromOutputItems($data);
     }

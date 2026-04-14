@@ -1,0 +1,131 @@
+
+Array
+(
+    [id] => resp_01334af5174d620d0069de0968c490819eb9fd28c792891320
+    [object] => response
+    [created_at] => 1776159080
+    [status] => completed
+    [background] => 
+    [billing] => Array
+        (
+            [payer] => developer
+        )
+    [completed_at] => 1776159131
+Error:     [error] => 
+    [frequency_penalty] => 0
+    [incomplete_details] => 
+    [instructions] => 
+    [max_output_tokens] => 
+    [max_tool_calls] => 
+    [model] => ***
+    [output] => Array
+        (
+            [0] => Array
+                (
+                    [id] => rs_01334af5174d620d0069de0969c988819e82274cc21f38ee12
+                    [type] => reasoning
+                    [summary] => Array
+                        (
+                        )
+                )
+            [1] => Array
+                (
+                    [id] => msg_01334af5174d620d0069de0996d1cc819e9031620993f32fee
+                    [type] => message
+                    [status] => completed
+                    [content] => Array
+                        (
+                            [0] => Array
+                                (
+                                    [type] => output_text
+                                    [annotations] => Array
+                                        (
+                                        )
+                                    [logprobs] => Array
+                                        (
+                                        )
+                                    [text] => {
+  "summary": {
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0
+  },
+  "issues": [
+    {
+      "severity": "critical",
+      "file": "review-gemini.php",
+      "line": 104,
+      "message": "main(): hardcoded Gemini API key is embedded in source code, which exposes credentials in the repository and CI logs.",
+      "suggestion": "Remove the hardcoded value and load the key from a protected secret (e.g., getenv('GEMINI_API_KEY')) with validation."
+    },
+    {
+      "severity": "high",
+      "file": "review.php",
+      "line": 405,
+      "message": "extractOpenAiText(): debug print_r + exit halts the pipeline and dumps the full OpenAI response, preventing reviews from completing and potentially leaking data.",
+      "suggestion": "Remove the debug output and exit; only parse and return the extracted text."
+    },
+    {
+      "severity": "high",
+      "file": "review.php",
+      "line": 966,
+      "message": "httpRequest(): TLS verification is explicitly disabled (CURLOPT_SSL_VERIFYPEER=false / CURLOPT_SSL_VERIFYHOST=0), enabling MITM attacks against API calls.",
+      "suggestion": "Enable TLS verification and, if needed, use applyTlsOptions() only for controlled local overrides."
+    }
+  ],
+  "human_readable": "File: review-gemini.php\nLine: 104\nSeverity: critical\nIssue: main() hardcodes a Gemini API key in source.\nImpact: Secrets can be exposed in the repo and logs, allowing unauthorized API use.\nSuggestion: Remove the hardcoded key and read it from a protected secret (e.g., GEMINI_API_KEY).\n\nFile: review.php\nLine: 405\nSeverity: high\nIssue: extractOpenAiText() prints the full response and exits unconditionally.\nImpact: The review job never completes and may leak sensitive response data.\nSuggestion: Remove the debug print/exit and return the parsed text.\n\nFile: review.php\nLine: 966–967\nSeverity: high\nIssue: httpRequest() disables TLS verification.\nImpact: API traffic can be intercepted or modified via MITM.\nSuggestion: Enable TLS verification and only allow overrides via applyTlsOptions() when explicitly requested."
+}
+                                )
+                        )
+                    [role] => assistant
+                )
+        )
+    [parallel_tool_calls] => 1
+    [presence_penalty] => 0
+    [previous_response_id] => 
+    [prompt_cache_key] => 
+    [prompt_cache_retention] => 
+    [reasoning] => Array
+        (
+            [effort] => medium
+            [summary] => 
+        )
+    [safety_identifier] => 
+    [service_tier] => default
+    [store] => 1
+    [temperature] => 1
+    [text] => Array
+        (
+            [format] => Array
+                (
+                    [type] => text
+                )
+            [verbosity] => medium
+        )
+    [tool_choice] => auto
+    [tools] => Array
+        (
+        )
+    [top_logprobs] => 0
+    [top_p] => 0.98
+    [truncation] => disabled
+    [usage] => Array
+        (
+            [input_tokens] => 33311
+            [input_tokens_details] => Array
+                (
+                    [cached_tokens] => 0
+                )
+            [output_tokens] => 5189
+            [output_tokens_details] => Array
+                (
+                    [reasoning_tokens] => 4672
+                )
+            [total_tokens] => 38500
+        )
+    [user] => 
+    [metadata] => Array
+        (
+        )
+)
